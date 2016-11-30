@@ -8,8 +8,8 @@ function bias_variable(shape)
     return Variable(initial)
 end
 
-function conv2d(x, W)
-    nn.conv2d(x, W, [1, 1, 1, 1], "SAME")
+function conv2d(x, W, stride=1)
+    nn.conv2d(x, W, [1, stride, stride, 1], "SAME")
 end
 
 function max_pool_2x2(x)

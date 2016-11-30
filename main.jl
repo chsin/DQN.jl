@@ -4,21 +4,22 @@ using Distributions
 include("utils.jl");
 include("ReplayMemory.jl");
 
-ALPHA = 0.0001 # learning rate
+MAX_FRAMES = 50000
+ALPHA = 6e-6 # learning rate
 GAMMA = 0.99 # decay rate of past observations
 OBSERVE = 100. # timesteps to observe before training
-EXPLORE = 5000. # frames over which to anneal epsilon
-FINAL_EPSILON = 0.05 # final value of epsilon
+EXPLORE = MAX_FRAMES # frames over which to anneal epsilon
+FINAL_EPSILON = 0.1 # final value of epsilon
 INITIAL_EPSILON = 1.0 # starting value of epsilon
 REPLAY_MEM_SIZE = 590000 # number of previous transitions to remember
 BATCHSIZE = 32 # size of minibatch
 K = 1 # only select an action every Kth frame, repeat prev for others
-TARGET_UPDATE_FREQ = 5000 # update frequency for weights of target network
+TARGET_UPDATE_FREQ = 7500 # update frequency for weights of target network
 
 
 env = GymEnvironment("CartPole-v0")
 @show ACTIONS = n_actions(env)         # number of valid actions
-@show STATE_DIMS = obs_dimensions(env)[1];
+@show STATE_DIMS = obs_dimensions(env)[1] * 4;
 
 
 function createNetwork(ACTIONS, input_dim, prefix, hidden_dim=100)
@@ -38,7 +39,7 @@ function createNetwork(ACTIONS, input_dim, prefix, hidden_dim=100)
     s = placeholder(Float32, shape=[nothing, input_dim], name="input")
 
     # hidden layer
-    h1 = nn.tanh(s*W1 + b1)
+    h1 = nn.relu(s*W1 + b1)
 
     # readout layer
     readout = h1*W2 + b2
@@ -47,12 +48,20 @@ function createNetwork(ACTIONS, input_dim, prefix, hidden_dim=100)
 end
 
 
-preprocess(x) = x
+function preprocess(x, prev_state)
+    # prev_state is a vector of the last 4 frames
+    if prev_state==nothing
+        # initialization
+        return vcat(x, x, x, x)
+    end
+    return vcat(x, prev_state[5:end])
+end
 
-function frame_step(action)
+
+function frame_step(action, prev_state)
     x_t, r_0, is_terminal = step!(env, action)
-    s_t = preprocess(x_t)
-    s_t, r_0, is_terminal, is_terminal ? preprocess(reset(env)) : nothing
+    s_t = preprocess(x_t, prev_state)
+    s_t, r_0, is_terminal, is_terminal ? preprocess(reset(env), nothing) : nothing
 end
 
 function unpack_memory(minibatch, BATCHSIZE)
@@ -94,11 +103,14 @@ function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wg
     mkpath(log_dir)
     summary_writer = train.SummaryWriter(log_dir)
 
+    episode_length_op = placeholder(Int32)
+    episode_length_summary = scalar_summary("EpisodeLength", episode_length_op)
+
     # store the previous observations in replay memory
     D = ReplayMemory(REPLAY_MEM_SIZE)
 
     # initialize state
-    s_t, r_0, is_terminal, _ = frame_step(0)
+    s_t, r_0, is_terminal, _ = frame_step(0, nothing)
 
     # must initialize tf vars before accessing
     run(sess, initialize_all_variables())
@@ -106,7 +118,8 @@ function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wg
     # start training
     epsilon = INITIAL_EPSILON
     t = 0
-    while t < 50000
+    episode_length = 0
+    while t < MAX_FRAMES
        ## choose an action epsilon greedily
         a_t = 0
         if rand() <= epsilon || t <= OBSERVE
@@ -128,12 +141,15 @@ function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wg
         # run same action K=1 times
         for _=1:K
             # run the selected action and observe next state and reward
-            s_t1, r_t, is_terminal, s_0 = frame_step(a_t)
+            s_t1, r_t, is_terminal, s_0 = frame_step(a_t, s_t)
+            episode_length += 1
 
             # store the transition in D
             push_memory!(D, [s_t, a_t, r_t, s_t1, is_terminal])
 
             if is_terminal
+                write(summary_writer, run(sess, episode_length_summary, Dict(episode_length_op=>episode_length)), t)
+                episode_length = 0
                 s_t = s_0
                 break
             end

@@ -1,10 +1,12 @@
+using Distributions
+
 function weight_variable(shape)
-    initial = map(Float32, rand(Normal(0, .001), shape...))
+    initial = map(Float32, rand(Normal(0, 0.01), shape...))
     return Variable(initial)
 end
 
 function bias_variable(shape)
-    initial = fill(Float32(.1), shape...)
+    initial = fill(Float32(.01), shape...)
     return Variable(initial)
 end
 

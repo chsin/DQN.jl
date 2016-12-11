@@ -1,3 +1,9 @@
+###########################################################################
+# This codes the core code for the DQN. 
+# The user should have NO interactions with this file directly. Changing
+# this file will crash the rest of the program if the user is not careful.
+###########################################################################
+
 module DQN
 
 using Gym

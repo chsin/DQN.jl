@@ -1,10 +1,15 @@
-function createNetwork(ACTIONS, input_dim, prefix, hidden_dim=512)
+using TensorFlow
+include("utils.jl");
+
+function createNetwork(hyper_params, prefix, hidden_dim=512)
+    @assert length(hyper_params.state_shape) == 1
+    input_dim = hyper_params.state_shape[1]
     # network weights
     W1 = weight_variable([input_dim, hidden_dim])
     b1 = bias_variable([hidden_dim])
 
-    W2 = weight_variable([hidden_dim, ACTIONS])
-    b2 = bias_variable([ACTIONS])
+    W2 = weight_variable([hidden_dim, hyper_params.actions])
+    b2 = bias_variable([hyper_params.actions])
 
     histogram_summary("$prefix/weight/W1", W1)
     histogram_summary("$prefix/weight/b1", b1)

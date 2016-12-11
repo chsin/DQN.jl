@@ -82,6 +82,7 @@ function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wg
     summary_writer = train.SummaryWriter(logs_dir)
 
     saver = train.Saver()
+    saver.max_to_keep = 50
 
     # store the previous observations in replay memory
     D = ReplayMemory{Array{Float32, length(hyper_params.state_shape)}}(hyper_params.replay_mem_size)
@@ -194,8 +195,9 @@ function trainDQN(env, frame_step, createNetwork, hyper_params::HyperParameters,
         save_path = env.name
     end
     mkpath(save_path)
-    wgts_dir = joinpath(save_path, "weights")
+    wgts_dir = joinpath(save_path, "saved_wgts")
     mkpath(wgts_dir)
+    wgts_dir = joinpath(wgts_dir, "weights") # for naming conventions in Tensorflow
     logs_dir = joinpath(save_path, "logs")
     mkpath(logs_dir)
 
@@ -204,9 +206,9 @@ function trainDQN(env, frame_step, createNetwork, hyper_params::HyperParameters,
     # create tf session
     sess = Session()
     # training DQN
-    s, readout, wgts = createNetwork(hyper_params.actions, "main_network", sess)
+    s, readout, wgts = createNetwork(hyper_params, "main_network")
     # check point DQN, only gets updated occassionally to preserve stability
-    s_target, readout_target, wgts_target = createNetwork(hyper_params.actions, "target_network", sess)
+    s_target, readout_target, wgts_target = createNetwork(hyper_params, "target_network")
     trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wgts_target, sess, hyper_params, wgts_dir, logs_dir)
     close_monitor(env)
 end
@@ -216,8 +218,8 @@ function simulateDQN(env, frame_step, createNetwork, saved_wgts_path, num_sim_ep
     reset(env) # reset the environment
     # create tf session
     sess = Session()
-    s, readout, wgts = createNetwork(hyper_params.actions, "main_network", sess)
-    _, _, _ = createNetwork(hyper_params.actions, "target_network", sess)
+    s, readout, wgts = createNetwork(hyper_params, "main_network")
+    _, _, _ = createNetwork(hyper_params, "target_network")
 
     saver = train.Saver()
     train.restore(saver, sess, saved_wgts_path)

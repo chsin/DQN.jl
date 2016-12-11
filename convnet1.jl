@@ -2,7 +2,8 @@ using TensorFlow
 include("utils.jl");
 
 # assumes input dim is (80, 80, 4)
-function createNetwork(ACTIONS, prefix, sess)
+function createNetwork(hyper_params, prefix, sess=nothing)
+    @assert hyper_params.state_shape == (80, 80, 4)
     # network weights
     W_conv1 = weight_variable([8, 8, 4, 32])
     b_conv1 = bias_variable([32])
@@ -16,8 +17,8 @@ function createNetwork(ACTIONS, prefix, sess)
     W_fc1 = weight_variable([1600, 512])
     b_fc1 = bias_variable([512])
 
-    W_fc2 = weight_variable([512, ACTIONS])
-    b_fc2 = bias_variable([ACTIONS])
+    W_fc2 = weight_variable([512, hyper_params.actions])
+    b_fc2 = bias_variable([hyper_params.actions])
 
     # image_summary("$prefix/weight/W_conv1", W_conv1)
     # image_summary("$prefix/weight/b_conv1", b_conv1)

@@ -8,7 +8,7 @@ Assuming TensorFlow and OpenAi Gym are already installed, extra dependencies inc
 - DeepRL.jl
 - Tensorflow.jl
 
-### Usuage
+### Instructions
 
 Detailed tutorials are provided in the jupyter notebooks and examples are provided in `*_main.jl` files. But the code is repeated here for convenience.
 

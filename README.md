@@ -61,7 +61,7 @@ simulateDQN(env, frame_step, createNetwork, "CartPole-v0/saved_wgts/weights-2000
 
 ### Tensorboard:
 
-To use Tensorboard, navigate to the relevant experiment directory and enter
+To use Tensorboard, navigate to the relevant experiment directory, e.i `CartPole-v0` folder from the saved examples, and enter
 
 `tensorboard --logdir=logs`
 

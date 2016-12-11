@@ -1,3 +1,9 @@
+###########################################################################
+# This contains TensorFlow utils for building the example networks.
+# The user should have NO interactions with this file directly. Changing
+# this file will crash the examples if the user is not careful.
+###########################################################################
+
 using Distributions
 
 function weight_variable(shape)

@@ -67,3 +67,8 @@ To use Tensorboard, navigate to the relevant experiment directory and enter
 
 on the comand line.
 
+### Video examples of training sessions in progress
+
+1. [CartPole-v0 training sesson clips](https://youtu.be/fDY96bwKw3M)
+
+2. [Pong-v0 training sesson clips](https://youtu.be/_toBTIcEUpo)

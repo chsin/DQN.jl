@@ -1,7 +1,7 @@
 ###########################################################################
 # This codes the replay memory custom type for storing exeriences.
 # The user should have NO interactions with this file directly. Changing
-# this file will crash the rest of the program is the user is not careful.
+# this file will crash the rest of the program if the user is not careful.
 ###########################################################################
 
 type ReplayMemory{State}

@@ -19,19 +19,22 @@ K = 1 # only select an action every Kth frame, repeat prev for others
 TARGET_UPDATE_FREQ = 7500 # update frequency for weights of target network
 MAX_NUM_EPISODES = 100000
 
+TIME_FRAMES = 4 # number of time frames in the state
+
 
 env = GymEnvironment("Pong-v0")
 @show ACTIONS = n_actions(env)         # number of valid actions
 # @show STATE_SHAPE = obs_dimensions(env)[0]
-@show STATE_SHAPE = (80, 80, 4)
+@show STATE_SHAPE = (80, 80, TIME_FRAMES)
+STATE_SHAPE_DIMS = length(STATE_SHAPE)
 
 typealias State Array{Float32,  3}
 
 type ExperienceBatch
-    s::Array{Float32, 4}
+    s::Array{Float32, STATE_SHAPE_DIMS + 1}
     a::Array{Int32, 1}
     r::Array{Float32, 1}
-    s1::Array{Float32, 4}
+    s1::Array{Float32, STATE_SHAPE_DIMS + 1}
     is_terminal::Array{Bool, 1}
 
     function ExperienceBatch(BATCHSIZE)
@@ -211,4 +214,45 @@ function runDQN(frame_step)
     close_monitor(env)
 end
 
-runDQN(frame_step)
+function simulateDQN(env, frame_step, createNetwork, saved_wgts_path, num_sim_episode)
+    start_monitor(env, "/tmp/dqn/monitor/exp_$(env.name)_$(now())")
+    reset(env) # reset the environment
+    # create tf session
+    sess = Session()
+    s, readout, wgts = createNetwork(ACTIONS, "main_network", sess)
+    _, _, _ = createNetwork(ACTIONS, "target_network", sess)
+
+    saver = train.Saver()
+    train.restore(saver, sess, saved_wgts_path)
+
+    # initialize state
+    s_t, _, _, _ = frame_step(0, nothing)
+
+    t = 0
+    episode = 0
+    while episode < num_sim_episode
+        total_reward = 0
+        is_terminal = false
+        while !is_terminal
+            # readout_t = [Q(s,a;theta_i) for all a in ACTIONS]
+            readout_t = run(sess, readout,  Dict(s=>reshape(s_t, 1, STATE_SHAPE...)))
+            a_t = indmax(readout_t) - 1
+
+            s_t1, r_t, is_terminal, s_0 = frame_step(a_t, s_t)
+            render(env)
+            total_reward += r_t
+            s_t = s_t1
+            if is_terminal
+                s_t = s_0
+                break
+            end
+        end
+        @printf("Finished episode %5d. Reward=%8.3f\n", episode, total_reward)
+        episode += 1
+    end
+    close_monitor(env)
+end
+
+# runDQN(frame_step)
+
+simulateDQN(env, frame_step, createNetwork, "/tmp/saved_weights/weights-300", 2)

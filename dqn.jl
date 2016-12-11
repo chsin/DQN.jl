@@ -7,6 +7,11 @@ include("ReplayMemory.jl")
 
 export trainDQN, simulateDQN, HyperParameters
 
+###########################################
+# HyperParameters contains all the fields
+# the user needs to tune to improve
+# DQN performance
+###########################################
 type HyperParameters
     alpha::Float32 # learning rate
     gamma::Float32 # decay rate of past observations
@@ -39,6 +44,15 @@ type HyperParameters
     end
 end
 
+
+###########################################
+# ExperienceBatch: 
+#     s = current state
+#     a = action 
+#     r = reward
+#     s1 = next state
+#     is_terminal
+###########################################
 type ExperienceBatch
     s::Array{Float32}
     a::Array{Int32}
@@ -55,6 +69,13 @@ type ExperienceBatch
     end
 end
 
+###########################################
+# trainNetwork: user should not be
+# interacting with this function, the
+# core of DQN training happens here, as in
+# this is where Algorithm 1 from the 2015
+# DeepMind paper is implemented
+###########################################
 function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wgts_target, sess, hyper_params, wgts_dir, logs_dir)
     # one hot vector of the action taken
     a = placeholder(Int32, shape=[nothing], name="action")
@@ -190,6 +211,10 @@ function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wg
     end
 end
 
+###########################################
+# trainDQN: trains the DQN while saving
+# video, wgts and tensorboard logs 
+###########################################
 function trainDQN(env, frame_step, createNetwork, hyper_params::HyperParameters, save_path=nothing)
     if save_path == nothing
         save_path = env.name
@@ -213,6 +238,10 @@ function trainDQN(env, frame_step, createNetwork, hyper_params::HyperParameters,
     close_monitor(env)
 end
 
+###########################################
+# simulateDQN: simmulates the DQN for set
+# number of episodes
+###########################################
 function simulateDQN(env, frame_step, createNetwork, saved_wgts_path, num_sim_episode, hyper_params::HyperParameters)
     start_monitor(env, "/tmp/dqn/monitor/exp_$(env.name)_$(now())")
     reset(env) # reset the environment

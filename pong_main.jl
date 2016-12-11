@@ -35,4 +35,4 @@ hyper_params = HyperParameters(ACTIONS, STATE_SHAPE)
 
 trainDQN(env, frame_step, createNetwork, hyper_params)
 
-#simulateDQN(env, frame_step, createNetwork, "/tmp/saved_weights/weights-300", 2, hyper_params)
+#simulateDQN(env, frame_step, createNetwork, "/Pong-v0/saved_wgts/weights-300", 2, hyper_params)

@@ -55,7 +55,7 @@ type ExperienceBatch
     end
 end
 
-function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wgts_target, sess, hyper_params)
+function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wgts_target, sess, hyper_params, wgts_dir, logs_dir)
     # one hot vector of the action taken
     a = placeholder(Int32, shape=[nothing], name="action")
     # scalar for r + gamma max_a' Q(s',a';theta_i^') from target
@@ -79,9 +79,7 @@ function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wg
 
     loss_summary = scalar_summary("Loss", loss)
 
-    log_dir = "/tmp/dqn/logs/$(now())"
-    mkpath(log_dir)
-    summary_writer = train.SummaryWriter(log_dir)
+    summary_writer = train.SummaryWriter(logs_dir)
 
     saver = train.Saver()
 
@@ -185,14 +183,23 @@ function trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wg
         end
         @printf("Finished episode %5d. Reward=%8.3f\n", episode, total_reward)
         if episode % 100 == 0
-            train.save(saver, sess, "./saved_weights/weights", global_step=episode)
+            train.save(saver, sess, wgts_dir, global_step=episode)
         end
         episode += 1
     end
 end
 
-function trainDQN(env, frame_step, createNetwork, hyper_params::HyperParameters)
-    start_monitor(env, "/tmp/dqn/monitor/exp_$(env.name)_$(now())")
+function trainDQN(env, frame_step, createNetwork, hyper_params::HyperParameters, save_path=nothing)
+    if save_path == nothing
+        save_path = env.name
+    end
+    mkpath(save_path)
+    wgts_dir = joinpath(save_path, "weights")
+    mkpath(wgts_dir)
+    logs_dir = joinpath(save_path, "logs")
+    mkpath(logs_dir)
+
+    start_monitor(env, joinpath(save_path, "videos"))
     reset(env) # reset the environment
     # create tf session
     sess = Session()
@@ -200,7 +207,7 @@ function trainDQN(env, frame_step, createNetwork, hyper_params::HyperParameters)
     s, readout, wgts = createNetwork(hyper_params.actions, "main_network", sess)
     # check point DQN, only gets updated occassionally to preserve stability
     s_target, readout_target, wgts_target = createNetwork(hyper_params.actions, "target_network", sess)
-    trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wgts_target, sess, hyper_params)
+    trainNetwork(frame_step, s, readout, wgts, s_target, readout_target, wgts_target, sess, hyper_params, wgts_dir, logs_dir)
     close_monitor(env)
 end
 
